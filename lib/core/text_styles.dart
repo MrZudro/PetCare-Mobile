@@ -16,7 +16,7 @@ class TextStyles {
 
   static const TextStyle titleText = TextStyle(
     fontSize: 24,
-    color: Colors.white,
+    color: AppColors.secondary,
     fontFamily: 'Poppins',
     fontWeight: FontWeight.bold,
   );

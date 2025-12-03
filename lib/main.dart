@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:petcare/core/text_styles.dart';
+import 'package:petcare/pages/auth.dart';
 
 void main() {
   runApp(const MainApp());
@@ -11,14 +11,9 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
-        body: Center(
-          child: Column(
-            children: [
-              Text("Esto es un texto", style: TextStyles.bodyTextBlack,),
-            ],
-          ),
-        ),
+        body:Auth()
       ),
     );
   }
