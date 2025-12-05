@@ -2,27 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "PetCare-Mobile",
-      "request": "launch",
-      "type": "dart"
-    },
-    {
-      "name": "PetCare-Mobile (profile mode)",
+      "name": "PetCare-Mobile (Debug)",
       "request": "launch",
       "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "PetCare-Mobile (Profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
       "flutterMode": "profile"
     },
     {
-      "name": "PetCare-Mobile (release mode)",
+      "name": "PetCare-Mobile (Release)",
       "request": "launch",
       "type": "dart",
-      "flutterMode": "release"
-    },
-    {
-      "name": "PetCare-Mobile (Flutter)",
       "program": "lib/main.dart",
-      "request": "launch",
-      "type": "dart"
+      "flutterMode": "release"
     }
   ]
 }

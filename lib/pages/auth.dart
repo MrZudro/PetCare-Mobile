@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:petcare/core/color_theme.dart';
+import 'package:petcare/components/textfield.dart';
+import 'package:petcare/components/button.dart';
 
 class Auth extends StatefulWidget {
   const Auth({super.key});
@@ -9,7 +11,10 @@ class Auth extends StatefulWidget {
 }
 
 class _AuthState extends State<Auth> {
-  String email = '';
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -25,7 +30,7 @@ class _AuthState extends State<Auth> {
                   "PetCare",
                   style: TextStyle(
                     color: AppColors.secondary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     fontSize: 40,
                     fontFamily: 'Poppins',
                   ),
@@ -47,9 +52,7 @@ class _AuthState extends State<Auth> {
                   Tab(text: "Registrarse"),
                 ],
               ),
-              TabBarView(children: [
-                tabOne(),
-              ]),
+              Expanded(child: TabBarView(children: [tabOne(), tabTwo()])),
             ],
           ),
         ),
@@ -59,31 +62,64 @@ class _AuthState extends State<Auth> {
 
   Widget tabOne() {
     return Form(
+      key: _formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(child: Text("Llenemos este formulario juntos..🐾")),
-          TextFormField(
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: "Email",
-              hintText: "tucorreo@gmail.com",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide.none,
-              ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 25, bottom: 40, left: 30),
+              child: Text("Llenemos este formulario juntos..🐾"),
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty || !value.contains("@")) {
-                return "Introduce un correo valido.";
-              }
-              return null;
-            },
-            onSaved: (value) {
-              email = value!;
-            },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 8,
+              bottom: 8,
+              right: 20,
+              left: 20,
+            ),
+            child: PersonalTextField(
+              controller: emailController,
+              prefixIcon: Icons.email,
+              labelText: "Correo electrónico",
+              hintText: "tucorreo@gmail.com",
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 8,
+              bottom: 8,
+              right: 20,
+              left: 20,
+            ),
+            child: PersonalTextField(
+              controller: passwordController,
+              labelText: "Contraseña",
+              hintText: "",
+              prefixIcon: Icons.lock,
+              obscureText: true,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: PersonalButton(
+              text: "Iniciar sesión",
+              onPressed: () {
+                print("Email: ${emailController.text}");
+                print("Password: ${passwordController.text}");
+              },
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget tabTwo() {
+    return Form(
+      child: Column(children: [Text("Llenemos este formulario juntos..🐾")]),
     );
   }
 }
