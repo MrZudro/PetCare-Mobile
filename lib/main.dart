@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:petcare/core/api_constants.dart';
 import 'package:petcare/pages/auth.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiConstants.init();
   runApp(const MainApp());
 }
 
