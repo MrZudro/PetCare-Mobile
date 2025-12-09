@@ -4,6 +4,7 @@ import 'package:petcare/components/textfield.dart';
 import 'package:petcare/components/button.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:petcare/pages/registration.dart';
+import 'package:petcare/pages/start_page.dart';
 
 class Auth extends StatefulWidget {
   const Auth({super.key});
@@ -119,8 +120,10 @@ class _AuthState extends State<Auth> {
               text: "Iniciar sesión",
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  print("Login Email: ${emailController.text}");
-                  print("Login Password: ${passwordController.text}");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => StartPage()),
+                  );
                 }
               },
             ),
