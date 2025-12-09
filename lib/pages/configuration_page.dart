@@ -7,6 +7,11 @@ import 'package:petcare/models/user_model.dart';
 import 'package:petcare/pages/auth.dart';
 import 'package:petcare/pages/edit_profile_page.dart';
 import 'package:petcare/components/custom_bottom_nav_bar.dart';
+import 'package:petcare/services/user_service.dart';
+import 'package:petcare/services/storage_service.dart';
+import 'package:petcare/services/settings_service.dart';
+import 'package:petcare/pages/language_settings_page.dart';
+import 'package:petcare/pages/currency_settings_page.dart';
 
 class ConfigurationPage extends StatefulWidget {
   final UserModel? user;
@@ -18,22 +23,73 @@ class ConfigurationPage extends StatefulWidget {
 }
 
 class _ConfigurationPageState extends State<ConfigurationPage> {
-  late UserModel currentUser;
+  UserModel? currentUser;
+  bool isLoading = true;
+  final UserService _userService = UserService();
+  final StorageService _storageService = StorageService();
+  final SettingsService _settingsService = SettingsService();
+
+  String _currentLanguage = '';
+  String _currentCurrency = '';
 
   @override
   void initState() {
     super.initState();
-    // Default user data from the design if none provided
-    currentUser =
-        widget.user ??
-        UserModel(
-          id: 1,
-          names: 'Manuel',
-          lastNames: 'Quiazua',
-          email: 'yatusae@gmail.com',
-          phone: '',
-          profilePhotoUrl: 'https://i.pravatar.cc/300', // Placeholder
+    _loadUserData();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final language = await _settingsService.getLanguage();
+    final currency = await _settingsService.getCurrency();
+    if (mounted) {
+      setState(() {
+        _currentLanguage = language;
+        _currentCurrency = currency;
+      });
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() => isLoading = true);
+
+    if (widget.user != null) {
+      setState(() {
+        currentUser = widget.user;
+        isLoading = false;
+      });
+      return;
+    }
+
+    // Check if user is logged in first
+    final isLoggedIn = await _storageService.isLoggedIn();
+    if (!isLoggedIn) {
+      // User is not logged in, redirect to Auth page
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const Auth()),
+          (Route<dynamic> route) => false,
         );
+      }
+      return;
+    }
+
+    final user = await _userService.getCurrentUser();
+    if (mounted) {
+      setState(() {
+        currentUser = user;
+        isLoading = false;
+      });
+
+      // If still no user despite being "logged in", clear auth and redirect
+      if (user == null) {
+        _storageService.clearAuthData();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const Auth()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    }
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -74,14 +130,18 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 // Close dialog
                 Navigator.of(context).pop();
+                // Clear auth data
+                await _storageService.clearAuthData();
                 // Navigate to Auth page and clear navigation stack
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const Auth()),
-                  (Route<dynamic> route) => false,
-                );
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const Auth()),
+                    (Route<dynamic> route) => false,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
@@ -106,6 +166,36 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: AppColors.error),
+              SizedBox(height: 16),
+              Text('Error al cargar datos del usuario'),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadUserData,
+                child: Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return WillPopScope(
       onWillPop: () async {
         Navigator.of(context).pop();
@@ -135,7 +225,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                         shape: BoxShape.circle,
                         image: DecorationImage(
                           image: NetworkImage(
-                            currentUser.profilePhotoUrl ??
+                            currentUser!.profilePhotoUrl ??
                                 'https://i.pravatar.cc/300',
                           ),
                           fit: BoxFit.cover,
@@ -148,14 +238,14 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      currentUser.fullName,
+                      currentUser!.fullName,
                       style: TextStyles.titleText.copyWith(
                         color: AppColors.primary,
                         fontSize: 22,
                       ),
                     ),
                     Text(
-                      currentUser.email,
+                      currentUser!.email,
                       style: TextStyles.bodyTextBlack.copyWith(
                         color: AppColors.tertiary, // Purple color
                         fontSize: 16,
@@ -219,30 +309,81 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                             icon: Icons.phone_android,
                             iconColor: AppColors.tertiary,
                             title: 'Numero de telefono',
-                            trailing: TextButton(
-                              onPressed: () {},
-                              child: const Text(
-                                'Añadir',
-                                style: TextStyle(color: AppColors.primary),
-                              ),
-                            ),
+                            value: currentUser!.phone.isNotEmpty
+                                ? currentUser!.phone
+                                : null,
+                            trailing: currentUser!.phone.isEmpty
+                                ? TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => EditProfilePage(
+                                            user: currentUser!,
+                                          ),
+                                        ),
+                                      ).then((_) => _loadUserData());
+                                    },
+                                    child: const Text(
+                                      'Añadir',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  )
+                                : TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => EditProfilePage(
+                                            user: currentUser!,
+                                          ),
+                                        ),
+                                      ).then((_) => _loadUserData());
+                                    },
+                                    child: const Text(
+                                      'Editar',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
                             showArrow: false,
                           ),
                           CustomSettingsTile(
                             icon: Icons.language,
                             iconColor: AppColors.tertiary,
                             title: 'Lenguaje',
-                            value: 'Español (spa)',
-                            onTap: () {},
-                            showArrow: false,
+                            value: _settingsService.getLanguageDisplayName(
+                              _currentLanguage,
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const LanguageSettingsPage(),
+                                ),
+                              ).then((_) => _loadSettings());
+                            },
                           ),
                           CustomSettingsTile(
                             icon: Icons.attach_money,
                             iconColor: AppColors.tertiary,
                             title: 'Moneda',
-                            value: 'COP Pesos (\$)',
-                            onTap: () {},
-                            showArrow: false,
+                            value: _settingsService.getCurrencyDisplayName(
+                              _currentCurrency,
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const CurrencySettingsPage(),
+                                ),
+                              ).then((_) => _loadSettings());
+                            },
                           ),
                           const SizedBox(height: 10),
                           CustomSettingsTile(
@@ -254,9 +395,9 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      EditProfilePage(user: currentUser),
+                                      EditProfilePage(user: currentUser!),
                                 ),
-                              );
+                              ).then((_) => _loadUserData());
                             },
                           ),
                           CustomSettingsTile(

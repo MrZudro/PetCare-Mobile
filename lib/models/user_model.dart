@@ -7,6 +7,9 @@ class UserModel {
   final String? profilePhotoUrl;
   final String? documentNumber;
   final String? address;
+  final String? birthDate; // Changed to String to match API format (YYYY-MM-DD)
+  final int? documentTypeId;
+  final int? neighborhoodId;
 
   UserModel({
     this.id,
@@ -17,6 +20,9 @@ class UserModel {
     this.profilePhotoUrl,
     this.documentNumber,
     this.address,
+    this.birthDate,
+    this.documentTypeId,
+    this.neighborhoodId,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +35,9 @@ class UserModel {
       profilePhotoUrl: json['profilePhotoUrl'],
       documentNumber: json['documentNumber'],
       address: json['address'],
+      birthDate: json['birthDate'],
+      documentTypeId: json['documentTypeId'],
+      neighborhoodId: json['neighborhoodId'],
     );
   }
 
@@ -42,6 +51,9 @@ class UserModel {
       'profilePhotoUrl': profilePhotoUrl,
       'documentNumber': documentNumber,
       'address': address,
+      'birthDate': birthDate,
+      'documentTypeId': documentTypeId,
+      'neighborhoodId': neighborhoodId,
     };
   }
 
