@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:petcare/core/color_theme.dart';
 import 'package:petcare/components/textfield.dart';
 import 'package:petcare/components/button.dart';
+import 'package:petcare/services/auth_service.dart';
+import 'package:petcare/models/register_request.dart';
 
 class RegistrationPage extends StatefulWidget {
   final String email;
@@ -19,6 +21,7 @@ class RegistrationPage extends StatefulWidget {
 
 class _RegistrationPageState extends State<RegistrationPage> {
   final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
 
   // Controllers
   final TextEditingController nameController = TextEditingController();
@@ -28,15 +31,66 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
 
-  // Dropdown Values
-  String? selectedDocType;
-  String? selectedLocality;
-  String? selectedNeighborhood;
+  // Dropdown Data
+  List<Map<String, dynamic>> docTypes = [];
+  List<Map<String, dynamic>> localities = [];
+  List<Map<String, dynamic>> allNeighborhoods = [];
+  List<Map<String, dynamic>> filteredNeighborhoods = [];
 
-  // Mock Data for UI demonstration (empty as requested for dynamic loading)
-  final List<String> docTypes = ["C.C.", "T.I.", "C.E.", "Pasaporte"];
-  final List<String> localities = []; // To be filled from API
-  final List<String> neighborhoods = []; // To be filled based on locality
+  // Dropdown Selections (Stored as IDs)
+  int? selectedDocTypeId;
+  int? selectedLocalityId;
+  int? selectedNeighborhoodId;
+
+  bool isLoading = true;
+  bool isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDropdownData();
+  }
+
+  Future<void> _fetchDropdownData() async {
+    setState(() => isLoading = true);
+    try {
+      final docs = await _authService.fetchDocumentTypes();
+      final locs = await _authService.fetchLocalities();
+      final neighborhoods = await _authService.fetchNeighborhoods();
+
+      if (mounted) {
+        setState(() {
+          docTypes = docs;
+          localities = locs;
+          allNeighborhoods = neighborhoods;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error cargando datos: $e")));
+      }
+    }
+  }
+
+  void _filterNeighborhoods(int? localityId) {
+    if (localityId == null) {
+      setState(() {
+        filteredNeighborhoods = [];
+        selectedNeighborhoodId = null;
+      });
+      return;
+    }
+    setState(() {
+      filteredNeighborhoods = allNeighborhoods
+          .where((n) => n['localityId'] == localityId)
+          .toList();
+      selectedNeighborhoodId = null;
+    });
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -58,14 +112,75 @@ class _RegistrationPageState extends State<RegistrationPage> {
       },
     );
     if (picked != null) {
+      // Format: YYYY-MM-DD for backend
+      String formattedDate =
+          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       setState(() {
-        dobController.text = "${picked.day}/${picked.month}/${picked.year}";
+        dobController.text = formattedDate;
       });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_formKey.currentState!.validate()) {
+      if (selectedDocTypeId == null ||
+          selectedLocalityId == null ||
+          selectedNeighborhoodId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Por favor seleccione todas las opciones")),
+        );
+        return;
+      }
+
+      setState(() => isSubmitting = true);
+
+      final request = RegisterRequest(
+        names: nameController.text,
+        lastNames: surnameController.text,
+        documentNumber: docNumberController.text,
+        email: widget.email,
+        password: widget.password,
+        birthDate: dobController.text, // Ensure mapped correctly in _selectDate
+        address: addressController.text,
+        phone: phoneController.text,
+        documentTypeId: selectedDocTypeId!,
+        neighborhoodId: selectedNeighborhoodId,
+        // Optional placeholder or actual logic for photo
+        profilePhotoUrl: null,
+      );
+
+      final success = await _authService.register(request);
+
+      if (mounted) {
+        setState(() => isSubmitting = false);
+        if (success) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Registro exitoso")));
+          // Navigate to Login or Home. For now popping back to Auth.
+          // Ideally: Navigator.pushReplacementNamed(context, '/login');
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error en el registro. Verifique los datos."),
+            ),
+          );
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -90,7 +205,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
           key: _formKey,
           child: Column(
             children: [
-              // Profile Photo Placeholder
+              // Profile Photo Placeholder (Visual Only for now)
               Center(
                 child: Column(
                   children: [
@@ -103,10 +218,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.grey[200],
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 4,
-                            ), // Optional white border
+                            border: Border.all(color: Colors.white, width: 4),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black12,
@@ -124,7 +236,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         Container(
                           padding: EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary, // Purple/Blue accent
+                            color: AppColors.secondary,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -157,18 +269,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       child: PersonalTextField(
                         controller: nameController,
                         hintText: "Tus nombres",
-                        // Assuming PersonalTextField handles decoration internally but we need consistent external spacing/labels as per design image which has labels ABOVE fields
-                        // The PersonalTextField implementation viewed before has labelText in InputDecoration.
-                        // But Design shows label OUTSIDE/ABOVE or distinct.
-                        // Check PersonalTextField implementation again?
-                        // It has `labelText` in generic creation.
-                        // Looking at image 2: Labels are outside "Nombres", "Apellidos".
-                        // I will wrap in a helper or use PersonalTextField's label and adjust usage?.
-                        // Image 2 clearly shows labels above the input box (which is outlined).
-                        // PersonalTextField uses InputDecoration label, which usually animates or stays inside.
-                        // To match Image 2 exactly, I should put text above.
-                        // I'll stick to using PersonalTextField for simplicity but maybe hide its label if I render outside, OR just use its label.
-                        // I will render label OUTSIDE and pass empty label to PersonalTextField for "hint" behavior primarily.
                       ),
                     ),
                   ),
@@ -193,11 +293,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     child: _buildLabelledField(
                       label: "Tipo de Documento",
                       child: _buildDropdown(
-                        value: selectedDocType,
+                        value: selectedDocTypeId,
                         items: docTypes,
                         hint: "Seleccione...",
                         onChanged: (val) =>
-                            setState(() => selectedDocType = val),
+                            setState(() => selectedDocTypeId = val),
                       ),
                     ),
                   ),
@@ -236,9 +336,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         child: AbsorbPointer(
                           child: PersonalTextField(
                             controller: dobController,
-                            hintText: "dd/mm/aaaa",
-                            prefixIcon:
-                                Icons.calendar_today, // Optional, looks good
+                            hintText: "AAAA-MM-DD",
+                            prefixIcon: Icons.calendar_today,
                           ),
                         ),
                       ),
@@ -258,40 +357,40 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               const SizedBox(height: 15),
 
-              // Locality (Requested Extra Field)
+              // Locality
               _buildLabelledField(
                 label: "Localidad",
                 child: _buildDropdown(
-                  value: selectedLocality,
+                  value: selectedLocalityId,
                   items: localities,
                   hint: "Seleccione...",
-                  onChanged: (val) => setState(() => selectedLocality = val),
+                  onChanged: (val) {
+                    setState(() => selectedLocalityId = val);
+                    _filterNeighborhoods(val);
+                  },
                 ),
               ),
               const SizedBox(height: 15),
 
               // Neighborhood
               _buildLabelledField(
-                label: "Barrio (Opcional)",
+                label: "Barrio",
                 child: _buildDropdown(
-                  value: selectedNeighborhood,
-                  items: neighborhoods,
+                  value: selectedNeighborhoodId,
+                  items: filteredNeighborhoods,
                   hint: "Seleccione...",
                   onChanged: (val) =>
-                      setState(() => selectedNeighborhood = val),
+                      setState(() => selectedNeighborhoodId = val),
                 ),
               ),
               const SizedBox(height: 40),
 
-              PersonalButton(
-                text: "Finalizar Registro",
-                onPressed: () {
-                  print("Registration Data:");
-                  print("Email: ${widget.email}");
-                  print("Name: ${nameController.text}");
-                  // Logic to submit to API
-                },
-              ),
+              isSubmitting
+                  ? CircularProgressIndicator(color: AppColors.primary)
+                  : PersonalButton(
+                      text: "Finalizar Registro",
+                      onPressed: _submit,
+                    ),
               const SizedBox(height: 20),
             ],
           ),
@@ -300,7 +399,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
     );
   }
 
-  // Helper to match design where Label is above the input
   Widget _buildLabelledField({required String label, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,28 +418,30 @@ class _RegistrationPageState extends State<RegistrationPage> {
     );
   }
 
-  // Custom Dropdown to match PersonalTextField style
   Widget _buildDropdown({
-    required String? value,
-    required List<String> items,
+    required int? value,
+    required List<Map<String, dynamic>> items,
     required String hint,
-    required ValueChanged<String?> onChanged,
+    required ValueChanged<int?> onChanged,
   }) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white, // Or transparent if background is colored
+        color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: AppColors.primary),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: DropdownButton<int>(
           value: value,
           hint: Text(hint, style: TextStyle(color: Colors.grey)),
           isExpanded: true,
           icon: Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item));
+          items: items.map((Map<String, dynamic> item) {
+            return DropdownMenuItem<int>(
+              value: item['id'],
+              child: Text(item['name'] ?? 'Unknown'),
+            );
           }).toList(),
           onChanged: onChanged,
         ),
