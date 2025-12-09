@@ -5,6 +5,8 @@ import 'package:petcare/components/button.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:petcare/pages/registration.dart';
 import 'package:petcare/pages/start_page.dart';
+import 'package:petcare/services/auth_service.dart';
+import 'package:petcare/services/storage_service.dart';
 
 class Auth extends StatefulWidget {
   const Auth({super.key});
@@ -26,6 +28,65 @@ class _AuthState extends State<Auth> {
   final TextEditingController registerConfirmPasswordController =
       TextEditingController();
   final GlobalKey<FormState> _registerFormKey = GlobalKey<FormState>();
+
+  final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
+  bool _isLoggingIn = false;
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoggingIn = true);
+
+    try {
+      final response = await _authService.login(
+        emailController.text.trim(),
+        passwordController.text,
+      );
+
+      if (response != null) {
+        // Save auth data
+        await _storageService.saveAuthData(
+          token: response['token'],
+          refreshToken: response['refreshToken'],
+          userId: response['id'],
+          userData: response,
+        );
+
+        if (mounted) {
+          // Navigate to StartPage
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => StartPage()),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Credenciales inválidas. Verifica e intenta nuevamente.',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al iniciar sesión: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoggingIn = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,17 +177,14 @@ class _AuthState extends State<Auth> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: PersonalButton(
-              text: "Iniciar sesión",
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => StartPage()),
-                  );
-                }
-              },
-            ),
+            child: _isLoggingIn
+                ? Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : PersonalButton(
+                    text: "Iniciar sesión",
+                    onPressed: _handleLogin,
+                  ),
           ),
           PersonalTextButton(
             text: "¿Olvidaste tu contraseña?",

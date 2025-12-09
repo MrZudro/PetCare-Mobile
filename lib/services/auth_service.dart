@@ -61,4 +61,46 @@ class AuthService {
     }
     return [];
   }
+
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConstants.authLogin),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('Login failed: ${response.statusCode}');
+        debugPrint('Body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error during login: $e');
+      return null;
+    }
+  }
+
+  Future<String?> refreshAccessToken(String refreshToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConstants.authRefresh),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refreshToken': refreshToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['token'];
+      } else {
+        debugPrint('Token refresh failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error refreshing token: $e');
+      return null;
+    }
+  }
 }

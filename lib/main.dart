@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:petcare/pages/auth.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MainApp());
 }
 
@@ -12,9 +13,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body:Auth()
-      ),
+      home: Scaffold(body: Auth()),
     );
   }
 }
