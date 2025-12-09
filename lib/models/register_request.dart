@@ -1,3 +1,5 @@
+// Increible, tambien se pueden hacer DTOs aqui
+
 class RegisterRequest {
   final String names;
   final String lastNames;

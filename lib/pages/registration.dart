@@ -3,7 +3,10 @@ import 'package:petcare/core/color_theme.dart';
 import 'package:petcare/components/textfield.dart';
 import 'package:petcare/components/button.dart';
 import 'package:petcare/services/auth_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:petcare/models/register_request.dart';
+import 'package:petcare/services/cloudinary_service.dart';
 
 class RegistrationPage extends StatefulWidget {
   final String email;
@@ -22,6 +25,9 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
+  final ImagePicker _picker = ImagePicker();
+  File? _imageFile;
 
   // Controllers
   final TextEditingController nameController = TextEditingController();
@@ -121,6 +127,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (selectedDocTypeId == null ||
@@ -134,6 +153,21 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
       setState(() => isSubmitting = true);
 
+      // Upload Image if selected
+      String? uploadedImageUrl;
+      if (_imageFile != null) {
+        uploadedImageUrl = await _cloudinaryService.uploadImage(_imageFile!);
+        if (uploadedImageUrl == null) {
+          if (mounted) {
+            setState(() => isSubmitting = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Error subiendo imagen")),
+            );
+          }
+          return;
+        }
+      }
+
       final request = RegisterRequest(
         names: nameController.text,
         lastNames: surnameController.text,
@@ -145,8 +179,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
         phone: phoneController.text,
         documentTypeId: selectedDocTypeId!,
         neighborhoodId: selectedNeighborhoodId,
-        // Optional placeholder or actual logic for photo
-        profilePhotoUrl: null,
+        // Using uploaded URL or null
+        profilePhotoUrl: uploadedImageUrl,
       );
 
       final success = await _authService.register(request);
@@ -205,57 +239,70 @@ class _RegistrationPageState extends State<RegistrationPage> {
           key: _formKey,
           child: Column(
             children: [
-              // Profile Photo Placeholder (Visual Only for now)
+              // Profile Photo
               Center(
-                child: Column(
-                  children: [
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[200],
-                            border: Border.all(color: Colors.white, width: 4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 10,
-                                offset: Offset(0, 5),
-                              ),
-                            ],
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: Column(
+                    children: [
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[200],
+                              image: _imageFile != null
+                                  ? DecorationImage(
+                                      image: FileImage(_imageFile!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: _imageFile == null
+                                ? Icon(
+                                    Icons.camera_alt_outlined,
+                                    size: 40,
+                                    color: Colors.grey[500],
+                                  )
+                                : null,
                           ),
-                          child: Icon(
-                            Icons.camera_alt_outlined,
-                            size: 40,
-                            color: Colors.grey[500],
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.secondary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Sube tu foto de perfil",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: Colors.grey[600],
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Text(
+                        _imageFile != null
+                            ? "Cambiar foto"
+                            : "Sube tu foto de perfil",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 30),
