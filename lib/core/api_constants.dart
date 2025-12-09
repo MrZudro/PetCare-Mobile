@@ -1,13 +1,24 @@
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ApiConstants {
-  // Use 10.0.2.2 for Android Emulator to access localhost
-  // Use your machine's IP if testing on a real device
-  static String get baseUrl {
+  static String _baseUrl = "http://localhost:8080";
+
+  static String get baseUrl => _baseUrl;
+
+  static Future<void> init() async {
     if (Platform.isAndroid) {
-      return "http://10.0.2.2:8080";
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      if (androidInfo.isPhysicalDevice) {
+        // Physical device via USB (requires 'adb reverse tcp:8080 tcp:8080')
+        _baseUrl = "http://localhost:8080";
+      } else {
+        // Android Emulator
+        _baseUrl = "http://10.0.2.2:8080";
+      }
     } else {
-      return "http://localhost:8080";
+      // Windows, iOS Simulator, etc.
+      _baseUrl = "http://localhost:8080";
     }
   }
 
