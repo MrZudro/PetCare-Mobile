@@ -457,56 +457,23 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                           const SizedBox(height: 20),
 
                           CustomSettingsTile(
-                            icon: Icons.phone_android,
-                            iconColor: AppColors.tertiary,
-                            title: 'Numero de telefono',
-                            value: currentUser!.phone.isNotEmpty
-                                ? currentUser!.phone
-                                : null,
-                            trailing: currentUser!.phone.isEmpty
-                                ? TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => EditProfilePage(
-                                            user: currentUser!,
-                                          ),
-                                        ),
-                                      ).then((_) => _loadUserData());
-                                    },
-                                    child: const Text(
-                                      'Añadir',
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  )
-                                : TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => EditProfilePage(
-                                            user: currentUser!,
-                                          ),
-                                        ),
-                                      ).then((_) => _loadUserData());
-                                    },
-                                    child: const Text(
-                                      'Editar',
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                            showArrow: false,
+                            icon: Icons.person_outline,
+                            title: 'Perfil',
+                            subtitle: 'Edita tu información personal',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      EditProfilePage(user: currentUser!),
+                                ),
+                              ).then((_) => _loadUserData());
+                            },
                           ),
                           CustomSettingsTile(
-                            icon: Icons.language,
-                            iconColor: AppColors.tertiary,
-                            title: 'Lenguaje',
-                            value: _settingsService.getLanguageDisplayName(
+                            icon: Icons.language_rounded,
+                            title: 'Idioma',
+                            subtitle: _settingsService.getLanguageDisplayName(
                               _currentLanguage,
                             ),
                             onTap: () {
@@ -520,10 +487,9 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                             },
                           ),
                           CustomSettingsTile(
-                            icon: Icons.attach_money,
-                            iconColor: AppColors.tertiary,
+                            icon: Icons.payments_rounded,
                             title: 'Moneda',
-                            value: _settingsService.getCurrencyDisplayName(
+                            subtitle: _settingsService.getCurrencyDisplayName(
                               _currentCurrency,
                             ),
                             onTap: () {
@@ -536,11 +502,11 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                               ).then((_) => _loadSettings());
                             },
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 16),
                           CustomSettingsTile(
-                            icon: Icons.edit,
-                            iconColor: AppColors.tertiary,
-                            title: 'Ajustes de perfil',
+                            icon: Icons.lock_outline_rounded,
+                            title: 'Seguridad',
+                            subtitle: 'Contraseña y privacidad',
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -551,18 +517,20 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                               ).then((_) => _loadUserData());
                             },
                           ),
+                          const SizedBox(height: 16),
                           CustomSettingsTile(
-                            icon: Icons.delete_outline,
-                            iconColor: AppColors.tertiary,
+                            icon: Icons.no_accounts_rounded,
                             title: 'Desactivar cuenta',
+                            subtitle: 'Desactiva tu cuenta temporalmente',
+                            isDanger: true,
                             onTap: () {
                               _showDeactivateAccountDialog(context);
                             },
                           ),
                           CustomSettingsTile(
-                            icon: Icons.logout,
-                            iconColor: AppColors.tertiary,
-                            title: 'Cerrar sesion',
+                            icon: Icons.logout_rounded,
+                            title: 'Cerrar sesión',
+                            subtitle: 'Sal de tu cuenta',
                             onTap: () {
                               _showLogoutDialog(context);
                             },

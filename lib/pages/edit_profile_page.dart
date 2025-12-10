@@ -94,6 +94,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
             }
           }
 
+          // Sort localities and neighborhoods alphabetically
+          docTypes.sort(
+            (a, b) => (a['name'] as String).toLowerCase().compareTo(
+              (b['name'] as String).toLowerCase(),
+            ),
+          );
+          localities.sort(
+            (a, b) => (a['name'] as String).toLowerCase().compareTo(
+              (b['name'] as String).toLowerCase(),
+            ),
+          );
+
           isLoadingDropdowns = false;
         });
       }
@@ -116,9 +128,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
     setState(() {
-      filteredNeighborhoods = allNeighborhoods
-          .where((n) => n['localityId'] == localityId)
-          .toList();
+      filteredNeighborhoods =
+          allNeighborhoods.where((n) => n['localityId'] == localityId).toList()
+            ..sort(
+              (a, b) => (a['name'] as String).toLowerCase().compareTo(
+                (b['name'] as String).toLowerCase(),
+              ),
+            );
       // Keep current neighborhood if it's in the filtered list
       if (selectedNeighborhoodId != null &&
           !filteredNeighborhoods.any(
@@ -359,27 +375,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 30),
 
-                    // Names & Last Names
-                    Row(
-                      children: [
-                        Expanded(
-                          child: PersonalTextField(
-                            controller: _namesController,
-                            labelText: 'Nombres',
-                            hintText: 'Ingrese sus nombres',
-                            prefixIcon: Icons.person_outline,
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: PersonalTextField(
-                            controller: _lastNamesController,
-                            labelText: 'Apellidos',
-                            hintText: 'Ingrese sus apellidos',
-                            prefixIcon: Icons.person_outline,
-                          ),
-                        ),
-                      ],
+                    // Names
+                    PersonalTextField(
+                      controller: _namesController,
+                      labelText: 'Nombres',
+                      hintText: 'Ingrese sus nombres',
+                      prefixIcon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Last Names
+                    PersonalTextField(
+                      controller: _lastNamesController,
+                      labelText: 'Apellidos',
+                      hintText: 'Ingrese sus apellidos',
+                      prefixIcon: Icons.person_outline,
                     ),
                     const SizedBox(height: 20),
 
@@ -401,42 +411,36 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Document Type & Number
-                    Row(
+                    // Document Type
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tipo de Documento',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Poppins',
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildDropdown(
-                                value: selectedDocTypeId,
-                                items: docTypes,
-                                hint: 'Seleccione...',
-                                onChanged: (val) =>
-                                    setState(() => selectedDocTypeId = val),
-                              ),
-                            ],
+                        Text(
+                          'Tipo de Documento',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
                           ),
                         ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: PersonalTextField(
-                            controller: _documentNumberController,
-                            labelText: 'Número',
-                            hintText: '...',
-                          ),
+                        const SizedBox(height: 8),
+                        _buildDropdown(
+                          value: selectedDocTypeId,
+                          items: docTypes,
+                          hint: 'Seleccione...',
+                          onChanged: (val) =>
+                              setState(() => selectedDocTypeId = val),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Document Number
+                    PersonalTextField(
+                      controller: _documentNumberController,
+                      labelText: 'Número de Documento',
+                      hintText: 'Ingrese su número de documento',
                     ),
                     const SizedBox(height: 20),
 
@@ -470,8 +474,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         Text(
                           'Localidad',
                           style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
                             fontFamily: 'Poppins',
                             fontSize: 14,
                           ),
@@ -497,8 +501,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         Text(
                           'Barrio',
                           style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
                             fontFamily: 'Poppins',
                             fontSize: 14,
                           ),
@@ -599,22 +603,48 @@ class _EditProfilePageState extends State<EditProfilePage> {
     required ValueChanged<int?> onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.primary),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1.5),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.grey)),
+          hint: Text(
+            hint,
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontFamily: 'Poppins',
+              fontSize: 15,
+            ),
+          ),
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Colors.grey.shade600,
+            size: 24,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w500,
+          ),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           items: items.map((Map<String, dynamic> item) {
             return DropdownMenuItem<int>(
               value: item['id'],
-              child: Text(item['name'] ?? 'Unknown'),
+              child: Text(
+                item['name'] ?? 'Unknown',
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                ),
+              ),
             );
           }).toList(),
           onChanged: onChanged,
