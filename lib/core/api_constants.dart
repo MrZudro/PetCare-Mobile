@@ -30,5 +30,17 @@ class ApiConstants {
   static String get neighborhoods => "$baseUrl/api/neighborhoods";
   static String get customers => "$baseUrl/customers";
 
+  // Products and Services endpoints (without /api prefix)
+  static String get products => "$baseUrl/products";
+  static String get services => "$baseUrl/services";
+
+  // Wishlists endpoint (without /api prefix)
+  static String get wishlists => "$baseUrl/wishlists";
+
+  // Veterinary clinics (with /api prefix)
+  static String get veterinaryClinics => "$baseUrl/api/veterinary-clinics";
+
   static String customerById(int id) => "$customers/$id";
+  static String productById(int id) => "$products/$id";
+  static String wishlistByUserId(int userId) => "$wishlists/user/$userId";
 }
