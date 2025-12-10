@@ -69,6 +69,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
           docTypes = docs;
           localities = locs;
           allNeighborhoods = neighborhoods;
+
+          // Sort alphabetically
+          docTypes.sort(
+            (a, b) => (a['name'] as String).toLowerCase().compareTo(
+              (b['name'] as String).toLowerCase(),
+            ),
+          );
+          localities.sort(
+            (a, b) => (a['name'] as String).toLowerCase().compareTo(
+              (b['name'] as String).toLowerCase(),
+            ),
+          );
+
           isLoading = false;
         });
       }
@@ -91,9 +104,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
     setState(() {
-      filteredNeighborhoods = allNeighborhoods
-          .where((n) => n['localityId'] == localityId)
-          .toList();
+      filteredNeighborhoods =
+          allNeighborhoods.where((n) => n['localityId'] == localityId).toList()
+            ..sort(
+              (a, b) => (a['name'] as String).toLowerCase().compareTo(
+                (b['name'] as String).toLowerCase(),
+              ),
+            );
       selectedNeighborhoodId = null;
     });
   }
@@ -333,32 +350,25 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               const SizedBox(height: 15),
 
-              // Doc Type & Number
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildLabelledField(
-                      label: "Tipo de Documento",
-                      child: _buildDropdown(
-                        value: selectedDocTypeId,
-                        items: docTypes,
-                        hint: "Seleccione...",
-                        onChanged: (val) =>
-                            setState(() => selectedDocTypeId = val),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: _buildLabelledField(
-                      label: "Número de Documento",
-                      child: PersonalTextField(
-                        controller: docNumberController,
-                        hintText: "...",
-                      ),
-                    ),
-                  ),
-                ],
+              // Doc Type
+              _buildLabelledField(
+                label: "Tipo de Documento",
+                child: _buildDropdown(
+                  value: selectedDocTypeId,
+                  items: docTypes,
+                  hint: "Seleccione...",
+                  onChanged: (val) => setState(() => selectedDocTypeId = val),
+                ),
+              ),
+              const SizedBox(height: 15),
+
+              // Doc Number
+              _buildLabelledField(
+                label: "Número de Documento",
+                child: PersonalTextField(
+                  controller: docNumberController,
+                  hintText: "Ingrese su número de documento",
+                ),
               ),
               const SizedBox(height: 15),
 
@@ -453,8 +463,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
         Text(
           label,
           style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
             fontFamily: 'Poppins',
             fontSize: 14,
           ),
@@ -472,22 +482,48 @@ class _RegistrationPageState extends State<RegistrationPage> {
     required ValueChanged<int?> onChanged,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.primary),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300, width: 1.5),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: value,
-          hint: Text(hint, style: TextStyle(color: Colors.grey)),
+          hint: Text(
+            hint,
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontFamily: 'Poppins',
+              fontSize: 15,
+            ),
+          ),
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Colors.grey.shade600,
+            size: 24,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w500,
+          ),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           items: items.map((Map<String, dynamic> item) {
             return DropdownMenuItem<int>(
               value: item['id'],
-              child: Text(item['name'] ?? 'Unknown'),
+              child: Text(
+                item['name'] ?? 'Unknown',
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                ),
+              ),
             );
           }).toList(),
           onChanged: onChanged,
