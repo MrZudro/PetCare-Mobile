@@ -9,6 +9,7 @@ import 'package:petcare/services/veterinary_service.dart';
 import 'package:petcare/services/wishlist_service.dart';
 import 'package:petcare/pages/alerts_center_page.dart';
 import 'package:petcare/pages/wishlist_page.dart';
+import 'package:petcare/pages/cart_page.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -246,6 +247,23 @@ class _StartPageState extends State<StartPage> {
                 );
               },
             ),
+
+            IconButton(
+              icon: Icon(
+                Icons.shopping_cart_outlined,
+                color: AppColors.primary,
+                size: 26,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CartPage(),
+                  ),
+                );
+              },
+            ),
+
             // Wishlist Icon with Badge
             Stack(
               children: [

@@ -6,6 +6,7 @@ class CartItem {
   final double price;
   final String imageUrl;
 
+
   CartItem({
     required this.id,
     required this.name,
