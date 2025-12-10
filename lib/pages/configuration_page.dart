@@ -3,9 +3,12 @@ import 'package:petcare/components/action_circle_button.dart';
 import 'package:petcare/components/custom_settings_tile.dart';
 import 'package:petcare/core/color_theme.dart';
 import 'package:petcare/core/text_styles.dart';
+import 'package:petcare/core/page_transitions.dart';
 import 'package:petcare/models/user_model.dart';
 import 'package:petcare/pages/auth.dart';
 import 'package:petcare/pages/edit_profile_page.dart';
+import 'package:petcare/pages/alerts_center_page.dart';
+import 'package:petcare/pages/help_center_page.dart';
 import 'package:petcare/components/custom_bottom_nav_bar.dart';
 import 'package:petcare/services/user_service.dart';
 import 'package:petcare/services/storage_service.dart';
@@ -90,6 +93,148 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
         );
       }
     }
+  }
+
+  void _showDeactivateAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '¿Desactivar cuenta?',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Esta acción desactivará tu cuenta permanentemente.',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '• No podrás iniciar sesión\n• Tus datos se conservarán\n• Puedes reactivarla contactando a soporte',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: AppColors.tertiary,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Close dialog
+                Navigator.of(context).pop();
+
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
+                );
+
+                // Deactivate account
+                final success = await _userService.deactivateAccount(
+                  currentUser!.id!,
+                );
+
+                // Close loading
+                if (mounted) Navigator.of(context).pop();
+
+                if (success) {
+                  // Clear auth data
+                  await _storageService.clearAuthData();
+
+                  // Show success message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Cuenta desactivada exitosamente',
+                          style: TextStyle(fontFamily: 'Poppins'),
+                        ),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+
+                  // Navigate to Auth page
+                  if (mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      PageTransitions.fade(const Auth()),
+                      (Route<dynamic> route) => false,
+                    );
+                  }
+                } else {
+                  // Show error message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Error al desactivar la cuenta. Intenta de nuevo.',
+                          style: TextStyle(fontFamily: 'Poppins'),
+                        ),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                'Desactivar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -244,13 +389,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                         fontSize: 22,
                       ),
                     ),
-                    Text(
-                      currentUser!.email,
-                      style: TextStyles.bodyTextBlack.copyWith(
-                        color: AppColors.tertiary, // Purple color
-                        fontSize: 16,
-                      ),
-                    ),
+                    const SizedBox(height: 4),
 
                     // Action Buttons
                     const SizedBox(height: 30),
@@ -265,12 +404,24 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                         ActionCircleButton(
                           icon: Icons.notifications_none,
                           label: 'Centro de Alertas',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.of(context).push(
+                              PageTransitions.slideAndFade(
+                                const AlertsCenterPage(),
+                              ),
+                            );
+                          },
                         ),
                         ActionCircleButton(
                           icon: Icons.help_outline,
                           label: 'Centro de Ayuda',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.of(context).push(
+                              PageTransitions.slideAndFade(
+                                const HelpCenterPage(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -405,7 +556,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                             iconColor: AppColors.tertiary,
                             title: 'Desactivar cuenta',
                             onTap: () {
-                              // Logic for account deactivation
+                              _showDeactivateAccountDialog(context);
                             },
                           ),
                           CustomSettingsTile(
