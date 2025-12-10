@@ -120,4 +120,35 @@ class UserService {
       return false;
     }
   }
+
+  Future<bool> deactivateAccount(int userId) async {
+    try {
+      final token = await _storageService.getToken();
+
+      if (token == null) {
+        debugPrint('No token found');
+        return false;
+      }
+
+      final response = await http.delete(
+        Uri.parse(ApiConstants.customerById(userId)),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        debugPrint('Account deactivated successfully');
+        return true;
+      } else {
+        debugPrint('Failed to deactivate account: ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error deactivating account: $e');
+      return false;
+    }
+  }
 }
