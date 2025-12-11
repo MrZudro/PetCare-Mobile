@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:petcare/components/button.dart';
 import 'package:petcare/components/textfield.dart';
@@ -9,6 +8,7 @@ import 'package:petcare/models/user_model.dart';
 import 'package:petcare/services/user_service.dart';
 import 'package:petcare/services/cloudinary_service.dart';
 import 'package:petcare/services/auth_service.dart';
+import 'package:petcare/services/image_service.dart';
 import 'package:petcare/components/password_change_dialog.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -34,7 +34,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final UserService _userService = UserService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final AuthService _authService = AuthService();
-  final ImagePicker _picker = ImagePicker();
+  final ImageService _imageService = ImageService();
 
   File? _imageFile;
   bool isSubmitting = false;
@@ -176,14 +176,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    final File? croppedImage = await _imageService.pickAndCropImage(context);
 
-    if (pickedFile != null) {
+    if (croppedImage != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = croppedImage;
       });
     }
   }

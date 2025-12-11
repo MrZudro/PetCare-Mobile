@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:petcare/core/color_theme.dart';
 import 'package:petcare/components/textfield.dart';
 import 'package:petcare/components/button.dart';
 import 'package:petcare/services/auth_service.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
 import 'package:petcare/models/register_request.dart';
 import 'package:petcare/services/cloudinary_service.dart';
+import 'package:petcare/services/image_service.dart';
 
 class RegistrationPage extends StatefulWidget {
   final String email;
@@ -26,7 +26,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
-  final ImagePicker _picker = ImagePicker();
+  final ImageService _imageService = ImageService();
   File? _imageFile;
 
   // Controllers
@@ -145,14 +145,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    final File? croppedImage = await _imageService.pickAndCropImage(context);
 
-    if (pickedFile != null) {
+    if (croppedImage != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = croppedImage;
       });
     }
   }
