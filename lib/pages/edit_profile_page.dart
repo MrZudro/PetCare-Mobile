@@ -9,6 +9,7 @@ import 'package:petcare/models/user_model.dart';
 import 'package:petcare/services/user_service.dart';
 import 'package:petcare/services/cloudinary_service.dart';
 import 'package:petcare/services/auth_service.dart';
+import 'package:petcare/services/image_service.dart';
 import 'package:petcare/components/password_change_dialog.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -35,6 +36,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final AuthService _authService = AuthService();
   final ImagePicker _picker = ImagePicker();
+  final ImageService _imageService = ImageService();
 
   File? _imageFile;
   bool isSubmitting = false;
@@ -184,6 +186,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
+    final File? croppedImage = await _imageService.pickAndCropImage(context);
+
+    if (croppedImage != null) {
+      setState(() {
+        _imageFile = croppedImage;
       });
     }
   }
