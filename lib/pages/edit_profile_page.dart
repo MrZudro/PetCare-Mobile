@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:petcare/components/button.dart';
 import 'package:petcare/components/textfield.dart';
@@ -34,6 +35,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final UserService _userService = UserService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final AuthService _authService = AuthService();
+  final ImagePicker _picker = ImagePicker();
   final ImageService _imageService = ImageService();
 
   File? _imageFile;
@@ -176,6 +178,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
     final File? croppedImage = await _imageService.pickAndCropImage(context);
 
     if (croppedImage != null) {

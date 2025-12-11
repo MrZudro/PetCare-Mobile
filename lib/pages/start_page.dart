@@ -9,6 +9,7 @@ import 'package:petcare/services/veterinary_service.dart';
 import 'package:petcare/services/wishlist_service.dart';
 import 'package:petcare/pages/alerts_center_page.dart';
 import 'package:petcare/pages/wishlist_page.dart';
+import 'package:petcare/pages/cart_page.dart';
 import 'package:petcare/pages/products_page.dart';
 import 'package:petcare/pages/product_detail_page.dart';
 import 'package:petcare/models/product_model.dart';
@@ -249,6 +250,23 @@ class _StartPageState extends State<StartPage> {
                 );
               },
             ),
+
+            IconButton(
+              icon: Icon(
+                Icons.shopping_cart_outlined,
+                color: AppColors.primary,
+                size: 26,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CartPage(),
+                  ),
+                );
+              },
+            ),
+
             // Wishlist Icon with Badge
             Stack(
               children: [
@@ -382,6 +400,7 @@ class _StartPageState extends State<StartPage> {
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: 0,
           onTap: (index) {
+            if (index == 4) {
             if (index == 1) {
               Navigator.push(
                 context,
@@ -451,6 +470,7 @@ class _StartPageState extends State<StartPage> {
           title: 'Productos',
           subtitle: '$productCount disponibles',
           color: AppColors.tertiary,
+          onTap: () {},
           onTap: () {
             Navigator.push(
               context,
@@ -567,6 +587,133 @@ class _StartPageState extends State<StartPage> {
     final price = (product['price'] as num?)?.toDouble() ?? 0.0;
     final stock = product['stock'] as int? ?? 0;
 
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product Image
+          Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              image: product['picture'] != null
+                  ? DecorationImage(
+                      image: NetworkImage(product['picture']),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: Stack(
+              children: [
+                if (stock <= 5)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Últimas $stock',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Product Info
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product['name'] ?? 'Producto',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${price.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Poppins',
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      product['brand'] ?? '',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'Poppins',
+                        color: const Color.fromRGBO(51, 51, 51, 0.6),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        final success = await _wishlistService.addToWishlist(
+                          product['id'],
+                        );
+                        if (success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Agregado a favoritos'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          _loadData();
+                        }
+                      },
+                      child: const Icon(
+                        Icons.favorite_border,
+                        size: 20,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
     return GestureDetector(
       onTap: () {
         // Convert Map to ProductModel and navigate to detail page
