@@ -7,6 +7,8 @@ import 'package:petcare/services/auth_service.dart';
 import 'package:petcare/models/register_request.dart';
 import 'package:petcare/services/cloudinary_service.dart';
 import 'package:petcare/services/image_service.dart';
+import 'package:petcare/services/storage_service.dart';
+import 'package:petcare/pages/address_form_page.dart';
 
 class RegistrationPage extends StatefulWidget {
   final String email;
@@ -27,6 +29,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final AuthService _authService = AuthService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final ImageService _imageService = ImageService();
+  final StorageService _storageService = StorageService();
   File? _imageFile;
 
   // Controllers
@@ -34,19 +37,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController surnameController = TextEditingController();
   final TextEditingController docNumberController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
 
   // Dropdown Data
   List<Map<String, dynamic>> docTypes = [];
-  List<Map<String, dynamic>> localities = [];
-  List<Map<String, dynamic>> allNeighborhoods = [];
-  List<Map<String, dynamic>> filteredNeighborhoods = [];
-
   // Dropdown Selections (Stored as IDs)
   int? selectedDocTypeId;
-  int? selectedLocalityId;
-  int? selectedNeighborhoodId;
 
   bool isLoading = true;
   bool isSubmitting = false;
@@ -61,27 +57,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
     setState(() => isLoading = true);
     try {
       final docs = await _authService.fetchDocumentTypes();
-      final locs = await _authService.fetchLocalities();
-      final neighborhoods = await _authService.fetchNeighborhoods();
 
       if (mounted) {
         setState(() {
           docTypes = docs;
-          localities = locs;
-          allNeighborhoods = neighborhoods;
-
           // Sort alphabetically
           docTypes.sort(
             (a, b) => (a['name'] as String).toLowerCase().compareTo(
               (b['name'] as String).toLowerCase(),
             ),
           );
-          localities.sort(
-            (a, b) => (a['name'] as String).toLowerCase().compareTo(
-              (b['name'] as String).toLowerCase(),
-            ),
-          );
-
           isLoading = false;
         });
       }
@@ -93,26 +78,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
         ).showSnackBar(SnackBar(content: Text("Error cargando datos: $e")));
       }
     }
-  }
-
-  void _filterNeighborhoods(int? localityId) {
-    if (localityId == null) {
-      setState(() {
-        filteredNeighborhoods = [];
-        selectedNeighborhoodId = null;
-      });
-      return;
-    }
-    setState(() {
-      filteredNeighborhoods =
-          allNeighborhoods.where((n) => n['localityId'] == localityId).toList()
-            ..sort(
-              (a, b) => (a['name'] as String).toLowerCase().compareTo(
-                (b['name'] as String).toLowerCase(),
-              ),
-            );
-      selectedNeighborhoodId = null;
-    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -156,11 +121,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      if (selectedDocTypeId == null ||
-          selectedLocalityId == null ||
-          selectedNeighborhoodId == null) {
+      if (selectedDocTypeId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Por favor seleccione todas las opciones")),
+          const SnackBar(
+            content: Text("Por favor seleccione el tipo de documento"),
+          ),
         );
         return;
       }
@@ -188,35 +153,94 @@ class _RegistrationPageState extends State<RegistrationPage> {
         documentNumber: docNumberController.text,
         email: widget.email,
         password: widget.password,
-        birthDate: dobController.text, // Ensure mapped correctly in _selectDate
-        address: addressController.text,
+        birthDate: dobController.text,
         phone: phoneController.text,
         documentTypeId: selectedDocTypeId!,
-        neighborhoodId: selectedNeighborhoodId,
-        // Using uploaded URL or null
         profilePhotoUrl: uploadedImageUrl,
       );
 
-      final success = await _authService.register(request);
+      final authResponse = await _authService.register(request);
 
       if (mounted) {
         setState(() => isSubmitting = false);
-        if (success) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Registro exitoso")));
-          // Navigate to Login or Home. For now popping back to Auth.
-          // Ideally: Navigator.pushReplacementNamed(context, '/login');
-          Navigator.pop(context);
+        if (authResponse != null) {
+          // Save auth data
+          await _storageService.saveAuthData(
+            token: authResponse['token'],
+            refreshToken: authResponse['refreshToken'],
+            userId: authResponse['id'],
+            userData: authResponse,
+          );
+
+          // Success! Ask to add address
+          _showAddressDialog(authResponse['id']);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text("Error en el registro. Verifique los datos."),
             ),
           );
         }
       }
     }
+  }
+
+  void _showAddressDialog(int customerId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          "Registro Exitoso",
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "¿Deseas agregar tu dirección de domicilio ahora?",
+          style: TextStyle(fontFamily: 'Poppins'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              // Navigate to Login (or home depending on flow)
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (route) => false,
+              );
+            },
+            child: const Text(
+              "No, más tarde",
+              style: TextStyle(color: Colors.grey, fontFamily: 'Poppins'),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddressFormPage(
+                    customerId: customerId,
+                    isAfterRegistration: true,
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Sí, agregar",
+              style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -232,10 +256,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primary),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           "Completar Perfil",
           style: TextStyle(
             color: AppColors.primary,
@@ -398,44 +422,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 15),
-
-              // Address
-              _buildLabelledField(
-                label: "Dirección",
-                child: PersonalTextField(
-                  controller: addressController,
-                  hintText: "",
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // Locality
-              _buildLabelledField(
-                label: "Localidad",
-                child: _buildDropdown(
-                  value: selectedLocalityId,
-                  items: localities,
-                  hint: "Seleccione...",
-                  onChanged: (val) {
-                    setState(() => selectedLocalityId = val);
-                    _filterNeighborhoods(val);
-                  },
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // Neighborhood
-              _buildLabelledField(
-                label: "Barrio",
-                child: _buildDropdown(
-                  value: selectedNeighborhoodId,
-                  items: filteredNeighborhoods,
-                  hint: "Seleccione...",
-                  onChanged: (val) =>
-                      setState(() => selectedNeighborhoodId = val),
-                ),
               ),
               const SizedBox(height: 40),
 

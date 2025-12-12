@@ -7,11 +7,9 @@ class RegisterRequest {
   final String email;
   final String password;
   final String birthDate; // YYYY-MM-DD
-  final String address;
   final String phone;
   final String? profilePhotoUrl;
   final int documentTypeId;
-  final int? neighborhoodId;
   final String role;
 
   RegisterRequest({
@@ -21,11 +19,9 @@ class RegisterRequest {
     required this.email,
     required this.password,
     required this.birthDate,
-    required this.address,
     required this.phone,
     this.profilePhotoUrl,
     required this.documentTypeId,
-    this.neighborhoodId,
     this.role = "CUSTOMER",
   });
 
@@ -37,11 +33,9 @@ class RegisterRequest {
       "email": email,
       "password": password,
       "birthDate": birthDate,
-      "address": address,
       "phone": phone,
       "profilePhotoUrl": profilePhotoUrl,
       "documentTypeId": documentTypeId,
-      "neighborhoodId": neighborhoodId,
       "role": role,
     };
   }

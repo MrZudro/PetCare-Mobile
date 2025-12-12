@@ -28,7 +28,7 @@ class ApiConstants {
   static String get documentTypes => "$baseUrl/api/document-types";
   static String get localities => "$baseUrl/api/localities";
   static String get neighborhoods => "$baseUrl/api/neighborhoods";
-  static String get customers => "$baseUrl/customers";
+  static String get customers => "$baseUrl/api/customers";
 
   // Products and Services endpoints (without /api prefix)
   static String get products => "$baseUrl/products";

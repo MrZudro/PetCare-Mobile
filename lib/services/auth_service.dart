@@ -5,7 +5,7 @@ import 'package:petcare/core/api_constants.dart';
 import 'package:petcare/models/register_request.dart';
 
 class AuthService {
-  Future<bool> register(RegisterRequest request) async {
+  Future<Map<String, dynamic>?> register(RegisterRequest request) async {
     try {
       final response = await http.post(
         Uri.parse(ApiConstants.authRegister),
@@ -14,15 +14,15 @@ class AuthService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
+        return jsonDecode(response.body);
       } else {
         debugPrint("Registration failed: ${response.statusCode}");
         debugPrint("Body: ${response.body}");
-        return false;
+        return null;
       }
     } catch (e) {
       debugPrint("Error during registration: $e");
-      return false;
+      return null;
     }
   }
 
