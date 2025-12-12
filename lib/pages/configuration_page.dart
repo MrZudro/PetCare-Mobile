@@ -15,6 +15,9 @@ import 'package:petcare/services/storage_service.dart';
 import 'package:petcare/services/settings_service.dart';
 import 'package:petcare/pages/language_settings_page.dart';
 import 'package:petcare/pages/currency_settings_page.dart';
+import 'package:petcare/pages/products_page.dart';
+import 'package:petcare/pages/address_list_page.dart';
+import 'package:petcare/pages/payment_method_list_page.dart';
 
 class ConfigurationPage extends StatefulWidget {
   final UserModel? user;
@@ -471,6 +474,33 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
                             },
                           ),
                           CustomSettingsTile(
+                            icon: Icons.location_on_outlined,
+                            title: 'Gestionar Direcciones',
+                            subtitle: 'Agrega o elimina tus direcciones',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AddressListPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          CustomSettingsTile(
+                            icon: Icons.credit_card_outlined,
+                            title: 'Métodos de Pago',
+                            subtitle: 'Gestiona tus tarjetas',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const PaymentMethodListPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          CustomSettingsTile(
                             icon: Icons.language_rounded,
                             title: 'Idioma',
                             subtitle: _settingsService.getLanguageDisplayName(
@@ -549,10 +579,15 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
           currentIndex: 4, // Settings is selected
           onTap: (index) {
             if (index == 0) {
-              // Navigate back to Home/Start page
-              Navigator.of(context).pop();
+              // Navigate back to Home/Start page clearly
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            } else if (index == 1) {
+              // Navigate to Products
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProductsPage()),
+              );
             }
-            // Other navigation items can be implemented later
           },
         ),
       ),

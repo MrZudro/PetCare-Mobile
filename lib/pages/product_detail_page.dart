@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:petcare/models/product_model.dart';
 import 'package:petcare/core/color_theme.dart';
 import 'package:petcare/core/text_styles.dart';
+import 'package:petcare/models/cart_model.dart';
+import 'package:petcare/services/cart_service.dart';
+import 'package:petcare/services/wishlist_service.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final ProductModel product;
@@ -22,18 +25,61 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   late bool _isWishlisted;
   int quantity = 1;
+  final WishlistService _wishlistService = WishlistService();
 
   @override
   void initState() {
     super.initState();
     _isWishlisted = widget.isWishlisted;
+    _checkWishlistStatus();
   }
 
-  void _toggleWishlist() {
-    widget.onToggleWishlist(widget.product.id);
+  Future<void> _checkWishlistStatus() async {
+    try {
+      final products = await _wishlistService.getUserWishlist();
+      // 'products' is now a List<Map> of the actual products
+
+      final isFound = products.any((p) => p['id'] == widget.product.id);
+
+      if (mounted) {
+        setState(() {
+          _isWishlisted = isFound;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error checking wishlist: $e");
+    }
+  }
+
+  Future<void> _toggleWishlist() async {
+    // Optimistic UI update
     setState(() {
       _isWishlisted = !_isWishlisted;
     });
+
+    bool success;
+    if (_isWishlisted) {
+      // Adding
+      success = await _wishlistService.addToWishlist(widget.product.id);
+    } else {
+      // Removing
+      success = await _wishlistService.removeFromWishlist(widget.product.id);
+    }
+
+    if (!success && mounted) {
+      // Revert
+      setState(() {
+        _isWishlisted = !_isWishlisted;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error actualizando favoritos'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } else {
+      widget.onToggleWishlist(widget.product.id);
+    }
   }
 
   @override
@@ -214,6 +260,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        // Add products to cart
+                        final cartService = CartService();
+                        for (int i = 0; i < quantity; i++) {
+                          cartService.addToCart(
+                            CartItem(
+                              id: widget.product.id.toString(),
+                              name: widget.product.name,
+                              description: widget.product.description,
+                              brand: widget.product.brand ?? 'Sin marca',
+                              price: widget.product.price,
+                              imageUrl:
+                                  widget.product.imageUrl ??
+                                  'https://via.placeholder.com/150',
+                            ),
+                          );
+                        }
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(

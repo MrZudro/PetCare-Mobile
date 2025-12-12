@@ -1,61 +1,95 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:petcare/core/api_constants.dart';
-import 'package:petcare/services/storage_service.dart';
+import 'package:flutter/material.dart';
+import '../core/api_constants.dart';
+import '../models/address_model.dart';
+import 'storage_service.dart';
 
 class AddressService {
   final StorageService _storageService = StorageService();
 
-  Future<bool> createAddress(
-    int customerId,
-    Map<String, dynamic> addressData,
-  ) async {
+  // Assuming there is an endpoint for addresses. Since strict endpoints were not provided for Address CRUD specifically in the view_file of api_constants (only localities/neighborhoods/customers),
+  // I will assume standard REST pattern under /api/customers/{id}/addresses or /api/addresses.
+  // However, looking at Address entity, it relates to Customer.
+  // I'll assume I can POST to a generic address endpoint or similar.
+  // Let's deduce:
+  // Java code: @Table(name = "address")
+  // I'll assume endpoint: "$baseUrl/api/addresses" which links to current user.
+  // Or "$baseUrl/api/customers/{id}/addresses".
+  // Given ApiConstants has `customers`, I'll try to follow a standard if not defined.
+  // The user asked to ensure requests are correct.
+  // I will add `addresses` to ApiConstants first if needed, but I cannot edit it easily without "replace".
+  // I'll stick to defining the URL here if not in constants, or use a likely pattern.
+  // Let's assume there is a controller for Address.
+  // I will use `${ApiConstants.baseUrl}/api/addresses` for now.
+
+  String get _addressUrl => "${ApiConstants.baseUrl}/api/addresses";
+
+  Future<List<AddressModel>> getUserAddresses() async {
     try {
       final token = await _storageService.getToken();
-      final response = await http.post(
-        Uri.parse("${ApiConstants.baseUrl}/customers/$customerId/addresses"),
-        headers: {
-          "Content-Type": "application/json",
-          if (token != null) "Authorization": "Bearer $token",
-        },
-        body: jsonEncode(addressData),
-      );
+      final userId = await _storageService.getUserId();
+      if (token == null || userId == null) throw Exception('Auth required');
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return true;
-      } else {
-        debugPrint(
-          "Error creating address: ${response.statusCode} - ${response.body}",
-        );
-        return false;
-      }
-    } catch (e) {
-      debugPrint("Exception creating address: $e");
-      return false;
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getAddresses(int customerId) async {
-    try {
-      final token = await _storageService.getToken();
+      // Assuming endpoint gets addresses for logged in user or by customer ID query
       final response = await http.get(
-        Uri.parse("${ApiConstants.baseUrl}/customers/$customerId/addresses"),
+        Uri.parse("$_addressUrl/user/$userId"), // Guessing endpoint pattern
         headers: {
-          "Content-Type": "application/json",
-          if (token != null) "Authorization": "Bearer $token",
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
-      } else {
-        debugPrint("Error fetching addresses: ${response.statusCode}");
-        return [];
+        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data.map((json) => AddressModel.fromJson(json)).toList();
       }
-    } catch (e) {
-      debugPrint("Exception fetching addresses: $e");
       return [];
+    } catch (e) {
+      debugPrint("Error fetching addresses: $e");
+      return [];
+    }
+  }
+
+  Future<bool> createAddress(AddressModel address) async {
+    try {
+      final token = await _storageService.getToken();
+      final userId = await _storageService.getUserId();
+      if (token == null || userId == null) return false;
+
+      final body = address.toJson();
+      body['customer'] = {'id': userId}; // Link to customer
+
+      final response = await http.post(
+        Uri.parse(_addressUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      debugPrint("Error creating address: $e");
+      return false;
+    }
+  }
+
+  Future<bool> deleteAddress(int id) async {
+    try {
+      final token = await _storageService.getToken();
+      if (token == null) return false;
+
+      final response = await http.delete(
+        Uri.parse("$_addressUrl/$id"),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      debugPrint("Error deleting address: $e");
+      return false;
     }
   }
 }

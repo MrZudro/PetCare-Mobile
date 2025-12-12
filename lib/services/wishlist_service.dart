@@ -7,7 +7,7 @@ import 'package:petcare/core/api_constants.dart';
 class WishlistService {
   final StorageService _storageService = StorageService();
 
-  // Get user's wishlist
+  // Get user's wishlist products
   Future<List<Map<String, dynamic>>> getUserWishlist() async {
     try {
       final token = await _storageService.getToken();
@@ -26,8 +26,12 @@ class WishlistService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
-        return data.cast<Map<String, dynamic>>();
+        // Response is a DTO with a 'products' list
+        final Map<String, dynamic> data = jsonDecode(
+          utf8.decode(response.bodyBytes),
+        );
+        final List<dynamic> products = data['products'] ?? [];
+        return products.cast<Map<String, dynamic>>();
       } else {
         throw Exception('Failed to load wishlist: ${response.statusCode}');
       }
@@ -47,16 +51,18 @@ class WishlistService {
         throw Exception('No token or user ID found');
       }
 
+      // POST /wishlists/user/{userId}/product/{productId}
+      final url = '${ApiConstants.wishlists}/user/$userId/product/$productId';
+
       final response = await http.post(
-        Uri.parse(ApiConstants.wishlists),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'userId': userId, 'productId': productId}),
       );
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      return response.statusCode == 200;
     } catch (e) {
       debugPrint('Error adding to wishlist: $e');
       return false;
@@ -64,13 +70,19 @@ class WishlistService {
   }
 
   // Remove product from wishlist
-  Future<bool> removeFromWishlist(int wishlistId) async {
+  Future<bool> removeFromWishlist(int productId) async {
     try {
       final token = await _storageService.getToken();
-      if (token == null) throw Exception('No token found');
+      final userId = await _storageService.getUserId();
+
+      if (token == null || userId == null)
+        throw Exception('No token or user ID found');
+
+      // DELETE /wishlists/user/{userId}/product/{productId}
+      final url = '${ApiConstants.wishlists}/user/$userId/product/$productId';
 
       final response = await http.delete(
-        Uri.parse('${ApiConstants.wishlists}/$wishlistId'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

@@ -4,7 +4,6 @@ import '../core/text_styles.dart';
 import '../models/cart_model.dart';
 import '../services/cart_service.dart';
 
-
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
 
@@ -39,22 +38,40 @@ class _CartPageState extends State<CartPage> {
         future: _cartItemsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.secondary),
+            );
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error cargando el carrito', style: TextStyles.bodyTextBlack));
+            return Center(
+              child: Text(
+                'Error cargando el carrito',
+                style: TextStyles.bodyTextBlack,
+              ),
+            );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('Tu carrito está vacío', style: TextStyles.bodyTextBlack));
+            return _buildEmptyCart(context);
           }
 
           final items = snapshot.data!;
           // Calcular totales dinámicamente
-          final double subtotal = items.fold(0, (sum, item) => sum + item.price);
-          final summary = OrderSummary(subtotal: subtotal, tax: 24.20, discount: 40.00);
+          final double subtotal = items.fold(
+            0,
+            (sum, item) => sum + item.price,
+          );
+          // Calculating 19% tax (Colombia standard)
+          final double tax = subtotal * 0.19;
+          final double discount = 0.00; // No discount implemented yet
+          final summary = OrderSummary(
+            subtotal: subtotal,
+            tax: tax,
+            discount: discount,
+          );
 
           return Container(
             margin: const EdgeInsets.only(top: 10),
             decoration: BoxDecoration(
-              color: AppColors.backgroundSecondary, // Usando 0xFFF0F8FF (AliceBlue) según tu código
+              color: AppColors
+                  .backgroundSecondary, // Usando 0xFFF0F8FF (AliceBlue) según tu código
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(30),
@@ -73,24 +90,30 @@ class _CartPageState extends State<CartPage> {
                       children: [
                         Text(
                           'Mi carrito',
-                          style: TextStyles.titleText.copyWith(color: AppColors.secondary),
+                          style: TextStyles.titleText.copyWith(
+                            color: AppColors.secondary,
+                          ),
                         ),
                         const SizedBox(height: 5),
                         Text(
                           'Lista de tus productos',
-                          style: TextStyles.bodyTextBlack.copyWith(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyles.bodyTextBlack.copyWith(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                
+
                 // Lista de Productos (Scrollable)
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.all(24),
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const Divider(height: 30, color: Colors.black12),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 30, color: Colors.black12),
                     itemBuilder: (context, index) {
                       final item = items[index];
                       return _buildCartItem(item);
@@ -108,7 +131,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-Widget _buildCartItem(CartItem item) {
+  Widget _buildCartItem(CartItem item) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -122,7 +145,8 @@ Widget _buildCartItem(CartItem item) {
             image: DecorationImage(
               // Usamos NetworkImage para cargar las URLs de Cloudinary
               image: NetworkImage(item.imageUrl),
-              fit: BoxFit.cover, // Cover se ve mejor para fotos de productos llenos
+              fit: BoxFit
+                  .cover, // Cover se ve mejor para fotos de productos llenos
             ),
             boxShadow: [
               BoxShadow(
@@ -149,15 +173,16 @@ Widget _buildCartItem(CartItem item) {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyles.titleText.copyWith(
-                        fontSize: 16, // Ajustado ligeramente para nombres largos
-                        color: AppColors.secondary
+                        fontSize:
+                            16, // Ajustado ligeramente para nombres largos
+                        color: AppColors.secondary,
                       ),
                     ),
                   ),
                   Text(
                     '\$${item.price.toStringAsFixed(0)}', // Sin decimales para pesos colombianos si prefieres
                     style: TextStyles.titleText.copyWith(
-                      fontSize: 18, 
+                      fontSize: 18,
                       color: AppColors.secondary,
                     ),
                   ),
@@ -174,9 +199,9 @@ Widget _buildCartItem(CartItem item) {
                 child: Text(
                   'Marca: ${item.brand}',
                   style: TextStyles.bodyTextBlack.copyWith(
-                    fontSize: 10, 
+                    fontSize: 10,
                     color: AppColors.primary,
-                    fontWeight: FontWeight.bold
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -186,8 +211,8 @@ Widget _buildCartItem(CartItem item) {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyles.bodyTextBlack.copyWith(
-                  fontSize: 12, 
-                  color: Colors.grey[600]
+                  fontSize: 12,
+                  color: Colors.grey[600],
                 ),
               ),
             ],
@@ -195,9 +220,9 @@ Widget _buildCartItem(CartItem item) {
         ),
         // Icono Eliminar
         IconButton(
-          onPressed: () {}, 
+          onPressed: () {},
           icon: const Icon(Icons.delete_outline, color: AppColors.error),
-        )
+        ),
       ],
     );
   }
@@ -206,7 +231,8 @@ Widget _buildCartItem(CartItem item) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
-        color: AppColors.backgroundSecondary, // Mantiene el color de fondo suave
+        color:
+            AppColors.backgroundSecondary, // Mantiene el color de fondo suave
         border: Border(top: BorderSide(color: Colors.black12)),
       ),
       child: Column(
@@ -214,11 +240,17 @@ Widget _buildCartItem(CartItem item) {
         children: [
           Text(
             'Resumen de la orden',
-            style: TextStyles.titleText.copyWith(fontSize: 20, color: AppColors.secondary),
+            style: TextStyles.titleText.copyWith(
+              fontSize: 20,
+              color: AppColors.secondary,
+            ),
           ),
           Text(
             'Lista de todos tus items',
-            style: TextStyles.bodyTextBlack.copyWith(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyles.bodyTextBlack.copyWith(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
           ),
           const SizedBox(height: 20),
           _summaryRow('Precio base', summary.subtotal),
@@ -233,20 +265,24 @@ Widget _buildCartItem(CartItem item) {
                   Text(
                     'Total',
                     style: TextStyles.titleText.copyWith(
-                      fontSize: 22, 
-                      color: AppColors.tertiary // Purple
+                      fontSize: 22,
+                      color: AppColors.tertiary, // Purple
                     ),
                   ),
                   const SizedBox(width: 5),
-                  const Icon(Icons.info_outline, size: 16, color: AppColors.tertiary)
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: AppColors.tertiary,
+                  ),
                 ],
               ),
               Text(
                 '\$${summary.total.toStringAsFixed(2)}',
                 style: TextStyles.titleText.copyWith(
-                  fontSize: 24, 
+                  fontSize: 24,
                   color: Colors.black, // El total es negro en la imagen
-                  fontWeight: FontWeight.bold
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -291,14 +327,73 @@ Widget _buildCartItem(CartItem item) {
             label,
             style: TextStyles.bodyTextBlack.copyWith(
               color: AppColors.tertiary, // Purple según imagen
-              fontSize: 15
+              fontSize: 15,
             ),
           ),
           Text(
             '\$${value.toStringAsFixed(2)}',
             style: TextStyles.bodyTextBlack.copyWith(
               fontSize: 16,
-              fontWeight: FontWeight.w600
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyCart(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.shopping_cart_outlined,
+              size: 80,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Tu carrito está vacío',
+            style: TextStyles.titleText.copyWith(
+              fontSize: 24,
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '¡Agrega productos para consentir a tu mascota!',
+            textAlign: TextAlign.center,
+            style: TextStyles.bodyTextBlack.copyWith(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: 200,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              child: const Text(
+                'Empezar a comprar',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],

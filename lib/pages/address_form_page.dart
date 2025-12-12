@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:petcare/core/color_theme.dart';
 import 'package:petcare/components/textfield.dart';
 import 'package:petcare/components/button.dart';
+import 'package:petcare/models/address_model.dart';
 import 'package:petcare/services/address_service.dart';
 import 'package:petcare/services/auth_service.dart';
 
@@ -110,19 +111,18 @@ class _AddressFormPageState extends State<AddressFormPage> {
 
       setState(() => isSubmitting = true);
 
-      final addressData = {
-        "addressLine": _addressLineController.text,
-        "additionalInfo": _additionalInfoController.text,
-        "deliveryNotes": _deliveryNotesController.text,
-        "addressType": _selectedAddressType,
-        "neighborhoodId": selectedNeighborhoodId,
-        "isDefault": true, // First address as default?
-      };
-
-      final success = await _addressService.createAddress(
-        widget.customerId,
-        addressData,
+      final address = AddressModel(
+        addressLine: _addressLineController.text,
+        additionalInfo: _additionalInfoController.text,
+        deliveryNotes: _deliveryNotesController.text,
+        addressType: _selectedAddressType,
+        neighborhoodId: selectedNeighborhoodId!,
+        isDefault: true,
       );
+
+      // We rely on the service to get the UserID from storage (or assume backend handles it from token)
+      // The service createAddress method takes AddressModel.
+      final success = await _addressService.createAddress(address);
 
       if (mounted) {
         setState(() => isSubmitting = false);

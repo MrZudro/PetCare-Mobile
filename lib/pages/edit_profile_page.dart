@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+
 import 'dart:io';
 import 'package:petcare/components/button.dart';
 import 'package:petcare/components/textfield.dart';
@@ -11,6 +11,7 @@ import 'package:petcare/services/cloudinary_service.dart';
 import 'package:petcare/services/auth_service.dart';
 import 'package:petcare/services/image_service.dart';
 import 'package:petcare/components/password_change_dialog.dart';
+import 'package:petcare/pages/address_form_page.dart';
 
 class EditProfilePage extends StatefulWidget {
   final UserModel user;
@@ -26,7 +27,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _lastNamesController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _addressController;
   late TextEditingController _documentNumberController;
   late TextEditingController _dobController;
 
@@ -35,7 +35,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final UserService _userService = UserService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
   final AuthService _authService = AuthService();
-  final ImagePicker _picker = ImagePicker();
+
   final ImageService _imageService = ImageService();
 
   File? _imageFile;
@@ -43,13 +43,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   // Dropdown data
   List<Map<String, dynamic>> docTypes = [];
-  List<Map<String, dynamic>> localities = [];
-  List<Map<String, dynamic>> allNeighborhoods = [];
-  List<Map<String, dynamic>> filteredNeighborhoods = [];
 
   int? selectedDocTypeId;
-  int? selectedLocalityId;
-  int? selectedNeighborhoodId;
   bool isLoadingDropdowns = true;
 
   @override
@@ -59,14 +54,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _lastNamesController = TextEditingController(text: widget.user.lastNames);
     _emailController = TextEditingController(text: widget.user.email);
     _phoneController = TextEditingController(text: widget.user.phone);
-    _addressController = TextEditingController(text: widget.user.address ?? '');
     _documentNumberController = TextEditingController(
       text: widget.user.documentNumber ?? '',
     );
     _dobController = TextEditingController(text: widget.user.birthDate ?? '');
 
     selectedDocTypeId = widget.user.documentTypeId;
-    selectedNeighborhoodId = widget.user.neighborhoodId;
 
     _fetchDropdownData();
   }
@@ -75,34 +68,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => isLoadingDropdowns = true);
     try {
       final docs = await _authService.fetchDocumentTypes();
-      final locs = await _authService.fetchLocalities();
-      final neighborhoods = await _authService.fetchNeighborhoods();
 
       if (mounted) {
         setState(() {
           docTypes = docs;
-          localities = locs;
-          allNeighborhoods = neighborhoods;
-
-          // Find locality for current neighborhood
-          if (selectedNeighborhoodId != null) {
-            final currentNeighborhood = allNeighborhoods.firstWhere(
-              (n) => n['id'] == selectedNeighborhoodId,
-              orElse: () => {},
-            );
-            if (currentNeighborhood.isNotEmpty) {
-              selectedLocalityId = currentNeighborhood['localityId'];
-              _filterNeighborhoods(selectedLocalityId);
-            }
-          }
 
           // Sort localities and neighborhoods alphabetically
           docTypes.sort(
-            (a, b) => (a['name'] as String).toLowerCase().compareTo(
-              (b['name'] as String).toLowerCase(),
-            ),
-          );
-          localities.sort(
             (a, b) => (a['name'] as String).toLowerCase().compareTo(
               (b['name'] as String).toLowerCase(),
             ),
@@ -119,32 +91,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ).showSnackBar(SnackBar(content: Text('Error cargando datos: $e')));
       }
     }
-  }
-
-  void _filterNeighborhoods(int? localityId) {
-    if (localityId == null) {
-      setState(() {
-        filteredNeighborhoods = [];
-        selectedNeighborhoodId = null;
-      });
-      return;
-    }
-    setState(() {
-      filteredNeighborhoods =
-          allNeighborhoods.where((n) => n['localityId'] == localityId).toList()
-            ..sort(
-              (a, b) => (a['name'] as String).toLowerCase().compareTo(
-                (b['name'] as String).toLowerCase(),
-              ),
-            );
-      // Keep current neighborhood if it's in the filtered list
-      if (selectedNeighborhoodId != null &&
-          !filteredNeighborhoods.any(
-            (n) => n['id'] == selectedNeighborhoodId,
-          )) {
-        selectedNeighborhoodId = null;
-      }
-    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -178,14 +124,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
     final File? croppedImage = await _imageService.pickAndCropImage(context);
 
     if (croppedImage != null) {
@@ -201,7 +139,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _lastNamesController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
+
     _documentNumberController.dispose();
     _dobController.dispose();
     super.dispose();
@@ -258,11 +196,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         'lastNames': _lastNamesController.text,
         'email': _emailController.text,
         'phone': _phoneController.text,
-        'address': _addressController.text,
         'documentNumber': _documentNumberController.text,
         'birthDate': _dobController.text,
         'documentTypeId': selectedDocTypeId,
-        'neighborhoodId': selectedNeighborhoodId,
       };
 
       // Include password if changed via dialog
@@ -465,64 +401,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Address
-                    PersonalTextField(
-                      controller: _addressController,
-                      labelText: 'Dirección',
-                      hintText: 'Ingrese su dirección',
-                      prefixIcon: Icons.home_outlined,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Locality
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Localidad',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
+                    // Manage Addresses
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          if (widget.user.id != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddressFormPage(
+                                  customerId: widget.user.id!,
+                                  isAfterRegistration: false,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.location_on_outlined),
+                        label: const Text('Gestionar Direcciones'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: AppColors.primary),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          foregroundColor: AppColors.primary,
                         ),
-                        const SizedBox(height: 8),
-                        _buildDropdown(
-                          value: selectedLocalityId,
-                          items: localities,
-                          hint: 'Seleccione...',
-                          onChanged: (val) {
-                            setState(() => selectedLocalityId = val);
-                            _filterNeighborhoods(val);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Neighborhood
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Barrio',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildDropdown(
-                          value: selectedNeighborhoodId,
-                          items: filteredNeighborhoods,
-                          hint: 'Seleccione...',
-                          onChanged: (val) =>
-                              setState(() => selectedNeighborhoodId = val),
-                        ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 20),
 
