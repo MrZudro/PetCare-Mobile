@@ -12,7 +12,10 @@ import 'package:petcare/pages/wishlist_page.dart';
 import 'package:petcare/pages/cart_page.dart';
 import 'package:petcare/pages/products_page.dart';
 import 'package:petcare/pages/product_detail_page.dart';
+import 'package:petcare/pages/services_page.dart';
 import 'package:petcare/models/product_model.dart';
+import 'package:petcare/models/service_model.dart';
+import 'package:petcare/pages/service_detail_page.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -389,6 +392,11 @@ class _StartPageState extends State<StartPage> {
                 context,
                 MaterialPageRoute(builder: (context) => const ProductsPage()),
               );
+            } else if (index == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ServicesPage()),
+              );
             } else if (index == 4) {
               Navigator.push(
                 context,
@@ -463,7 +471,12 @@ class _StartPageState extends State<StartPage> {
           title: 'Servicios',
           subtitle: '$serviceCount disponibles',
           color: AppColors.primary,
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ServicesPage()),
+            );
+          },
         ),
         _buildQuickAccessCard(
           icon: Icons.local_hospital_outlined,
@@ -740,8 +753,42 @@ class _StartPageState extends State<StartPage> {
   }
 
   Widget _buildServiceCard(Map<String, dynamic> service) {
+    // Genera colores aleatorios para las tarjetas usando el ID o hash del nombre
+    final colors = [
+      AppColors.accentOne,
+      AppColors.accentTwo,
+      AppColors.accentThree,
+    ];
+    final cardColor =
+        colors[(service['id'] ?? service['name'].hashCode).abs() %
+            colors.length];
+
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        // Handle veterinary field extraction
+        String? vetName;
+        if (service['veterinary'] is String) {
+          vetName = service['veterinary'];
+        } else if (service['veterinary'] is Map) {
+          vetName = service['veterinary']['name'];
+        }
+
+        final serviceModel = ServiceModel(
+          id: service['id'] ?? 0,
+          name: service['name'] ?? 'Servicio',
+          description: service['description'] ?? '',
+          imageUrl: service['picture'], // Map 'picture' to 'imageUrl'
+          status: service['status'],
+          veterinary: vetName,
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ServiceDetailPage(service: serviceModel),
+          ),
+        );
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -763,7 +810,9 @@ class _StartPageState extends State<StartPage> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: const Color.fromRGBO(0, 122, 255, 0.1),
+                color: service['picture'] != null
+                    ? const Color.fromRGBO(0, 122, 255, 0.1)
+                    : cardColor.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: service['picture'] != null
@@ -773,9 +822,9 @@ class _StartPageState extends State<StartPage> {
                         service['picture'],
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
+                          return Icon(
                             Icons.medical_services,
-                            color: AppColors.primary,
+                            color: Colors.white,
                             size: 28,
                           );
                         },
@@ -783,7 +832,7 @@ class _StartPageState extends State<StartPage> {
                     )
                   : const Icon(
                       Icons.medical_services,
-                      color: AppColors.primary,
+                      color: Colors.white,
                       size: 28,
                     ),
             ),

@@ -53,7 +53,11 @@ class ProductCard extends StatelessWidget {
               Container(
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: product.imageUrl != null
+                      ? Colors.grey.shade100
+                      : cardColor.withOpacity(
+                          0.5,
+                        ), // Use pastel color if no image
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
@@ -66,7 +70,10 @@ class ProductCard extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    // Wishlist icon removed to keep cards clean
+                    if (product.imageUrl == null)
+                      Center(
+                        child: Icon(Icons.pets, size: 40, color: Colors.white),
+                      ),
                   ],
                 ),
               ),
